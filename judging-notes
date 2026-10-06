@@ -9,9 +9,18 @@ Existing tools give a real-time snapshot, while Soil Memory gives foresight. We 
 to let farmers simulate how different crop rotations would perform against actual historical climate stress before planting.
 
 ## 3. Product
-
+A live, functional Streamlit web app built directly on top of Google Earth Engine and NASA Earthdata.
+A farmer draws or selects their field, and the app instantly pulls real MODIS and SMAP data to visualize the land's 10-year soil 
+timeline—letting them run side-by-side rotation scenarios on actual satellite history.
 
 ## 4. Sustainability
-
+Built entirely on free, open-source tools and free NASA data, Soil Memory can be improved and forked by anyone. 
+The tool stays free for individual farmers, only institutions would pay. 
+Expansion would go through trusted intermediaries like agricultural extension agents,
+with multi-language support and offline-friendly PDF exports planned.
 
 ## 5. Presentation
+We skip the technical jargon and tell a human story through "Farmer Dalal." 
+We show her fighting an invisible problem—dwindling soil health—and hand her a visible solution. 
+Built around a crisp live dashboard demo backed up by a pre-recorded backup video,
+our pitch proves that space-grade data can solve real-world problems on the ground.
