@@ -30,7 +30,7 @@ To ensure the application remains operational in remote agricultural zones or fi
 
 1. **Clone or Download the Repository:**
    ```bash
-   git clone [https://github.com/doublanewiam-tech/soil-memory.git]
+   git clone https://github.com/doublanewiam-tech/soil-memory.git
 
 
 
