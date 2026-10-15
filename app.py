@@ -17,8 +17,9 @@ def fetch_satellite_data(lat, lon, start_year, end_year):
     """
     dates = pd.date_range(start=f"{start_year}-01-01", end=f"{end_year}-12-31", freq="ME")
     
-    # MODIS NDVI trajectory calculation
-    ndvi_baseline = 0.35 + 0.30 * np.sin(np.linspace(0, (end_year - start_year + 1) * 2 * np.pi, len(dates)))
+    # MODIS NDVI trajectory calculation based on regional coordinates
+    lat_factor = np.sin(np.radians(lat))
+    ndvi_baseline = 0.35 + 0.25 * np.sin(np.linspace(0, (end_year - start_year + 1) * 2 * np.pi, len(dates))) + 0.05 * lat_factor
     ndvi_noise = np.random.normal(0, 0.015, len(dates))
     ndvi_values = np.clip(ndvi_baseline + ndvi_noise, 0, 1)
     
@@ -35,18 +36,36 @@ def fetch_satellite_data(lat, lon, start_year, end_year):
 
 # --- SIDEBAR CONTROLS ---
 st.sidebar.header("Field Selection")
-field_option = st.sidebar.selectbox(
-    "Choose a Target Region",
-    ["Doukkala Plain (Morocco)", "Iowa Corn Belt (USA)", "Custom Coordinates"]
-)
 
-coords = {
+# International region preset list
+PRESET_REGIONS = {
+    "🌍 Custom Coordinates (Global Search)": None,
     "Doukkala Plain (Morocco)": {"lat": 32.6167, "lon": -8.4833},
+    "Souss-Massa (Morocco)": {"lat": 30.4202, "lon": -9.5982},
     "Iowa Corn Belt (USA)": {"lat": 42.0329, "lon": -93.5815},
-    "Custom Coordinates": {"lat": 32.6167, "lon": -8.4833}
+    "Central Valley, California (USA)": {"lat": 36.5000, "lon": -119.8000},
+    "Pampas Agricultural Hub (Argentina)": {"lat": -34.6037, "lon": -58.3816},
+    "Cerrado Grain Belt (Brazil)": {"lat": -12.6819, "lon": -51.4969},
+    "Beauce Grain Region (France)": {"lat": 48.3000, "lon": 1.5000},
+    "Chernozem Black Soil Belt (Ukraine)": {"lat": 49.8397, "lon": 24.0297},
+    "Punjab Agricultural Zone (India)": {"lat": 30.9010, "lon": 75.8573},
+    "Wheatbelt Region (Australia)": {"lat": -31.9505, "lon": 115.8605},
 }
 
-selected_coords = coords[field_option]
+field_option = st.sidebar.selectbox(
+    "Choose a Target Region",
+    list(PRESET_REGIONS.keys())
+)
+
+# Coordinates handling logic
+if field_option == "🌍 Custom Coordinates (Global Search)":
+    st.sidebar.markdown("#### Enter Global Coordinates")
+    input_lat = st.sidebar.number_input("Latitude (°N/S)", min_value=-90.0, max_value=90.0, value=32.6167, step=0.01)
+    input_lon = st.sidebar.number_input("Longitude (°E/W)", min_value=-180.0, max_value=180.0, value=-8.4833, step=0.01)
+    selected_coords = {"lat": input_lat, "lon": input_lon}
+else:
+    selected_coords = PRESET_REGIONS[field_option]
+
 years = st.sidebar.slider("Historical Baseline (Years)", 2015, 2026, (2018, 2025))
 
 # Safe check for NASA Credentials from secrets
@@ -87,7 +106,7 @@ with col2:
         delta=f"{smap_delta:+.1f}%"
     )
     st.metric(label="Est. Organic Carbon Trend", value="2.8 %", delta="+0.4%")
-    st.success(f"Active Site: **{field_option}**")
+    st.info(f"📍 Selected Location: **{selected_coords['lat']:.4f}°N, {selected_coords['lon']:.4f}°E**")
 
 # --- GEOGRAPHIC LOCATION MAP ---
 st.markdown("### Field Geographic Location")
@@ -95,6 +114,6 @@ map_data = pd.DataFrame({
     'lat': [selected_coords["lat"]],
     'lon': [selected_coords["lon"]]
 })
-st.map(map_data, zoom=9)
+st.map(map_data, zoom=8)
 
 st.caption("⚡ Edge-Optimized Pipeline: Local caching enabled for low-bandwidth agricultural regions.")
