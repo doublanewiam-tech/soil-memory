@@ -30,8 +30,8 @@ Prerequisites: Python 3.9+, Anaconda or Miniconda
 Setup Instructions:
 
 1. Clone or Download the Repository:
-git clone https://github.com/your-team/soil-memory.git
-cd soil-memory
+git clone [https://github.com/your-team/soil-memory.git
+cd soil-memory](https://github.com/doublanewiam-tech/soil-memory)
 
 2. Install Required Packages:
 pip install streamlit pandas numpy earthaccess xarray
