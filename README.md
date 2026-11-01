@@ -6,4 +6,4 @@ Soil Memory is a decision-support tool that uses NASA satellite data to help far
 
 | Map Screen | Timeline Screen | Comparison Screen |
 |---|---|---|
-| ![Map](design/map-screen.png) | ![Timeline](design/timeline-screen.png) | ![Comparison](design/comparison-screen.png) |
+| ![Map](design/map-screen) | ![Timeline](design/timeline-screen) | ![Comparison](design/comparison-screen) |
