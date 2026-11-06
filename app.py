@@ -1,150 +1,130 @@
-import streamlit as st
+import datetime as dt
+
 import pandas as pd
-import numpy as np
+import streamlit as st
 
-# Page configuration
+import core
+
 st.set_page_config(page_title="Soil Memory", page_icon="🌱", layout="wide")
+st.title("🌱 Soil Memory")
+st.caption("Reading what the soil remembers: NASA SMAP + MODIS, turned into a "
+           "rotation decision tool.")
 
-st.title("🌱 Soil Memory Profile")
-st.subheader("Satellite-driven Soil Health & Crop Rotation Simulator")
-
-# --- DYNAMIC SATELLITE DATA PIPELINE ---
-@st.cache_data(ttl=3600)
-def fetch_satellite_data(lat, lon, start_year, end_year):
-    """
-    Simulates real geographic variability using lat/lon coordinate hashing 
-    and seasonal climate algorithms for global locations.
-    """
-    dates = pd.date_range(start=f"{start_year}-01-01", end=f"{end_year}-12-31", freq="ME")
-    n_points = len(dates)
-    
-    # Deterministic seed based on unique coordinates
-    coord_seed = int((abs(lat) * 1000 + abs(lon) * 100) % 2**32)
-    np.random.seed(coord_seed)
-    
-    # Geographic climate modeling based on latitude and hemisphere
-    abs_lat = abs(lat)
-    is_southern_hemi = lat < 0
-    
-    # Base NDVI (Vegetation Index) - Depends on latitude zone
-    if abs_lat < 15: # Tropical
-        base_ndvi = 0.65
-    elif abs_lat < 35: # Subtropical/Arid
-        base_ndvi = 0.30
-    elif abs_lat < 55: # Temperate/Corn Belts
-        base_ndvi = 0.55
-    else: # Boreal/High Lat
-        base_ndvi = 0.40
-        
-    # Seasonal phase shift for Southern Hemisphere
-    phase_shift = np.pi if is_southern_hemi else 0
-    t = np.linspace(0, (end_year - start_year + 1) * 2 * np.pi, n_points) + phase_shift
-    
-    ndvi_seasonal = base_ndvi + 0.20 * np.sin(t) + np.random.normal(0, 0.02, n_points)
-    ndvi_values = np.clip(ndvi_seasonal, 0.05, 0.95)
-    
-    # SMAP Surface Soil Moisture (%) - Variable by latitude & longitude
-    base_smap = 12.0 + (50.0 - abs_lat * 0.6) + (abs(lon) % 15)
-    smap_seasonal = base_smap + 10.0 * np.cos(t) + np.random.normal(0, 1.5, n_points)
-    smap_values = np.clip(smap_seasonal, 5.0, 60.0)
-    
-    # Organic Carbon estimate dynamic to climate zone
-    soc_value = round(max(0.8, min(5.5, (base_ndvi * 4.2) + np.random.uniform(-0.3, 0.3))), 2)
-    soc_delta = round(np.random.uniform(-0.2, 0.5), 2)
-    
-    df = pd.DataFrame({
-        "Date": dates,
-        "NDVI (MODIS)": ndvi_values,
-        "Soil Moisture % (SMAP)": smap_values
-    }).set_index("Date")
-    
-    return df, soc_value, soc_delta
-
-# --- SIDEBAR CONTROLS ---
-st.sidebar.header("Field Selection")
-
-PRESET_REGIONS = {
-    "🌍 Custom Coordinates (Global Search)": None,
-    "Doukkala Plain (Morocco)": {"lat": 32.6167, "lon": -8.4833},
-    "Souss-Massa (Morocco)": {"lat": 30.4202, "lon": -9.5982},
-    "Iowa Corn Belt (USA)": {"lat": 42.0329, "lon": -93.5815},
-    "Central Valley, California (USA)": {"lat": 36.5000, "lon": -119.8000},
-    "Pampas Agricultural Hub (Argentina)": {"lat": -34.6037, "lon": -58.3816},
-    "Cerrado Grain Belt (Brazil)": {"lat": -12.6819, "lon": -51.4969},
-    "Beauce Grain Region (France)": {"lat": 48.3000, "lon": 1.5000},
-    "Chernozem Black Soil Belt (Ukraine)": {"lat": 49.8397, "lon": 24.0297},
-    "Punjab Agricultural Zone (India)": {"lat": 30.9010, "lon": 75.8573},
-    "Wheatbelt Region (Australia)": {"lat": -31.9505, "lon": 115.8605},
+PRESETS = {
+    "Doukkala Plain (Morocco)": (32.6167, -8.4833, "doukkala"),
+    "Souss-Massa (Morocco)": (30.4202, -9.5982, "souss_massa"),
+    "Iowa Corn Belt (USA)": (42.0329, -93.5815, "iowa"),
+    "Central Valley, California (USA)": (36.5, -119.8, "central_valley"),
+    "Argentine Pampas": (-34.6037, -58.3816, "pampas"),
+    "Cerrado Grain Belt (Brazil)": (-12.6819, -51.4969, "cerrado"),
+    "Beauce (France)": (48.3, 1.5, "beauce"),
+    "Chernozem Belt (Ukraine)": (49.8397, 24.0297, "chernozem"),
+    "Punjab (India)": (30.901, 75.8573, "punjab"),
+    "Wheatbelt (Australia)": (-31.9505, 115.8605, "wheatbelt"),
+    "Custom coordinates": None,
 }
 
-field_option = st.sidebar.selectbox(
-    "Choose a Target Region",
-    list(PRESET_REGIONS.keys())
-)
 
-if field_option == "🌍 Custom Coordinates (Global Search)":
-    st.sidebar.markdown("#### Enter Global Coordinates")
-    input_lat = st.sidebar.number_input("Latitude (°N/S)", min_value=-90.0, max_value=90.0, value=32.6167, step=0.01)
-    input_lon = st.sidebar.number_input("Longitude (°E/W)", min_value=-180.0, max_value=180.0, value=-8.4833, step=0.01)
-    selected_coords = {"lat": input_lat, "lon": input_lon}
+@st.cache_data(show_spinner=False)
+def get_series(lat, lon, y0, y1, slug):
+    return core.load_series(lat, lon, y0, y1, slug)
+
+
+# ---------------- sidebar ----------------
+st.sidebar.header("Field selection")
+choice = st.sidebar.selectbox("Region", list(PRESETS))
+if PRESETS[choice] is None:
+    lat = st.sidebar.number_input("Latitude", -90.0, 90.0, 32.6167, 0.01)
+    lon = st.sidebar.number_input("Longitude", -180.0, 180.0, -8.4833, 0.01)
+    slug = None
 else:
-    selected_coords = PRESET_REGIONS[field_option]
+    lat, lon, slug = PRESETS[choice]
 
-years = st.sidebar.slider("Historical Baseline (Years)", 2015, 2026, (2018, 2025))
+this_year = dt.date.today().year
+y0, y1 = st.sidebar.slider("Baseline years (SMAP starts Apr 2015)",
+                           2015, this_year, (2018, this_year - 1))
 
-# Check NASA Credentials
 try:
-    has_credentials = "EARTHDATA_USERNAME" in st.secrets
-except Exception:
-    has_credentials = False
+    df = get_series(lat, lon, y0, y1, slug)
+    metrics = core.memory_metrics(df)
+except ValueError as e:
+    st.error(f"Not enough data for this selection: {e}")
+    st.stop()
 
-if has_credentials:
-    st.sidebar.success("NASA Earthdata Credentials: Active ✅")
-else:
-    st.sidebar.warning("NASA Earthdata Credentials: Local Mock Engine ⚠️")
+is_real = df.attrs["is_real"]
+unit = df.attrs["sm_unit"]
+(st.success if is_real else st.warning)(f"**Data source:** {df.attrs['source']}")
+if not is_real:
+    st.caption("Numbers below illustrate the method. They are not measurements "
+               "of this field. See README → 'Real vs simulated'.")
 
-# --- DATA FETCHING ---
-data_df, soc_val, soc_delta = fetch_satellite_data(
-    selected_coords["lat"], 
-    selected_coords["lon"], 
-    years[0], 
-    years[1]
-)
+hemi_ns, hemi_ew = ("N" if lat >= 0 else "S"), ("E" if lon >= 0 else "W")
+st.sidebar.info(f"📍 {abs(lat):.4f}°{hemi_ns}, {abs(lon):.4f}°{hemi_ew}")
 
-# --- DASHBOARD METRICS & CHARTS ---
-col1, col2 = st.columns([2, 1])
+tab1, tab2, tab3, tab4 = st.tabs(
+    ["Trajectory", "Soil memory", "Rotation lab", "Method & limits"])
 
-with col1:
-    st.markdown("### Historical Satellite Soil Trajectory (MODIS + SMAP)")
-    st.line_chart(data_df[["NDVI (MODIS)", "Soil Moisture % (SMAP)"]])
+# ---------------- tab 1 ----------------
+with tab1:
+    c1, c2 = st.columns(2)
+    c1.markdown("**NDVI (MODIS)**, unitless")
+    c1.line_chart(df["ndvi"])
+    c2.markdown(f"**Surface soil moisture / wetness**, {unit}")
+    c2.line_chart(df["sm"])
+    st.map(pd.DataFrame({"lat": [lat], "lon": [lon]}), zoom=6)
+    st.download_button("Download series (CSV)", df.to_csv().encode(),
+                       file_name="soil_memory_series.csv", mime="text/csv")
 
-with col2:
-    st.markdown("### Field Metrics")
-    latest_smap = data_df["Soil Moisture % (SMAP)"].iloc[-1]
-    prev_smap = data_df["Soil Moisture % (SMAP)"].iloc[-2]
-    smap_delta = round(latest_smap - prev_smap, 2)
-    
-    st.metric(
-        label="Surface Soil Moisture (SMAP)", 
-        value=f"{latest_smap:.1f} %", 
-        delta=f"{smap_delta:+.1f}%"
+# ---------------- tab 2 ----------------
+with tab2:
+    m1, m2, m3, m4 = st.columns(4)
+    m1.metric("Moisture persistence τ",
+              "n/a" if pd.isna(metrics.tau_months) else f"{metrics.tau_months:.1f} mo",
+              help="e-folding time of soil-moisture anomalies: τ = −1/ln(r₁)")
+    m2.metric("Lag-1 autocorrelation r₁", f"{metrics.r1:.2f}")
+    m3.metric("Vegetation response lag", f"{metrics.best_lag_months} mo",
+              help=f"corr = {metrics.best_lag_corr:.2f}")
+    m4.metric("NDVI trend", f"{metrics.ndvi_trend_per_year:+.4f} /yr",
+              help="Deseasonalised slope: positive = greening, negative = browning")
+    anom = pd.DataFrame({"NDVI anomaly": core.monthly_anomalies(df["ndvi"]),
+                         "Soil-moisture anomaly": core.monthly_anomalies(df["sm"])})
+    st.line_chart(anom)
+    st.caption("Soil memory = how long a moisture anomaly persists (τ) and how "
+               "strongly vegetation carries it forward (lag and correlation).")
+
+# ---------------- tab 3 ----------------
+with tab3:
+    st.markdown("Compare two rotations on the same field. **Scenario model: "
+                "illustrative inputs, not a forecast.**")
+    crops = list(core.CROP_INPUT_TC_HA)
+    a, b = st.columns(2)
+    rot_a = a.multiselect("Rotation A (cycled in order)", crops, ["Wheat"])
+    rot_b = b.multiselect("Rotation B", crops,
+                          ["Wheat", "Legume (faba / chickpea)", "Wheat + cover crop"])
+    horizon = st.slider("Horizon (years)", 5, 30, 15)
+    soc0 = st.number_input("Current topsoil SOC stock (t C/ha), use a lab value",
+                           5.0, 150.0, 30.0)
+    if rot_a and rot_b:
+        out = pd.DataFrame({
+            "Rotation A": core.simulate_rotation(rot_a, horizon, soc0, df["sm"].mean(), unit),
+            "Rotation B": core.simulate_rotation(rot_b, horizon, soc0, df["sm"].mean(), unit),
+        })
+        st.line_chart(out)
+        d = out.iloc[-1]["Rotation B"] - out.iloc[-1]["Rotation A"]
+        st.metric(f"B vs A after {horizon} yr", f"{d:+.1f} t C/ha")
+    else:
+        st.info("Pick at least one crop for each rotation.")
+
+# ---------------- tab 4 ----------------
+with tab4:
+    st.markdown(
+        """
+**Data:** SMAP L4 `SPL4SMGP` (9 km, model-assimilated surface soil moisture) and
+MODIS `MOD13Q1` NDVI (250 m, 16-day), aggregated to monthly.
+**Scale gap:** one SMAP cell covers ~1,300 MODIS pixels, so soil moisture is a
+*regional* signal, not a per-field measurement.
+**SOC:** NDVI and soil moisture do not measure soil carbon. The rotation tab uses
+a one-pool balance model seeded by *your* measured SOC.
+**Not validated** against in-situ SOC yet. See README roadmap.
+"""
     )
-    st.metric(
-        label="Est. Organic Carbon Trend", 
-        value=f"{soc_val} %", 
-        delta=f"{soc_delta:+.1f}%"
-    )
-    st.info(f"📍 Location: **{selected_coords['lat']:.4f}°N, {selected_coords['lon']:.4f}°E**")
-
-# --- GEOGRAPHIC LOCATION MAP ---
-st.markdown("### Field Geographic Location")
-map_data = pd.DataFrame({
-    'lat': [selected_coords["lat"]],
-    'lon': [selected_coords["lon"]]
-})
-st.map(map_data, zoom=8)
-
-st.caption("⚡ Edge-Optimized Pipeline: Local caching enabled for low-bandwidth agricultural regions.")
- 
-  
-  
