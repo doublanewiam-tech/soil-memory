@@ -1,5 +1,5 @@
-streamlit
-pandas
-numpy
-earthaccess
-xarray
+streamlit>=1.35
+pandas>=2.0
+numpy>=1.24
+# only for scripts/fetch_real_data.py:
+# earthengine-api
