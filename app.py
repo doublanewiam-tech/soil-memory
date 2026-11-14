@@ -1,8 +1,14 @@
 import io
+import math
+import folium
 import pandas as pd
 import streamlit as st
+from streamlit_folium import st_folium
 
 st.set_page_config(page_title="Soil Memory", page_icon="🌱", layout="wide")
+
+SAT = "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
+LABELS = "https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}"
 
 TEXT = {
     "ar": {
@@ -12,6 +18,12 @@ TEXT = {
         "region": "المنطقة",
         "years": "الفترة (بالسنوات)",
         "source": "البيانات من أقمار ناسا: MODIS للنباتات وSMAP لرطوبة التربة.",
+        "map": "اختر حقلك على الخريطة (صورة الأقمار الصناعية)",
+        "map_hint": "اضغط على موقع حقلك في الخريطة",
+        "nearest": "أقرب منطقة",
+        "distance": "تبعد",
+        "km": "كم",
+        "far_warn": "حقلك بعيد عن أقرب نقطة بيانات، لذلك النتيجة تقريبية.",
         "veg": "النباتات",
         "moist": "رطوبة التربة",
         "veg_msgs": {
@@ -33,8 +45,7 @@ TEXT = {
         "avg_ndvi": "متوسط NDVI",
         "avg_moist": "متوسط رطوبة التربة",
         "location": "الموقع",
-        "map": "موقع الحقل على الخريطة",
-        "caption": "نموذج أوّلي: عتبات الألوان افتراضية، ورطوبة SMAP تخص الطبقة السطحية فقط. سيناريوهات التناوب الزراعي قادمة.",
+        "caption": "نموذج أوّلي: عتبات الألوان افتراضية، ورطوبة SMAP تخص الطبقة السطحية فقط، والنتيجة خاصة بأقرب نقطة بيانات وليست بالحقل بالضبط. سيناريوهات التناوب الزراعي قادمة.",
         "summary_for": "نتيجة منطقة",
     },
     "en": {
@@ -44,6 +55,12 @@ TEXT = {
         "region": "Region",
         "years": "Period (years)",
         "source": "Data: NASA MODIS (vegetation) and NASA SMAP L4 (soil moisture).",
+        "map": "Select your field on the map (satellite view)",
+        "map_hint": "Tap your field's location on the map",
+        "nearest": "Nearest region",
+        "distance": "distance",
+        "km": "km",
+        "far_warn": "Your field is far from the nearest data point, so the result is approximate.",
         "veg": "Vegetation",
         "moist": "Soil moisture",
         "veg_msgs": {
@@ -65,8 +82,7 @@ TEXT = {
         "avg_ndvi": "Average NDVI",
         "avg_moist": "Average soil moisture",
         "location": "Location",
-        "map": "Field location on the map",
-        "caption": "Prototype: color thresholds are assumptions, and SMAP moisture covers the surface layer only. Crop rotation scenarios are coming.",
+        "caption": "Prototype: color thresholds are assumptions, SMAP moisture covers the surface layer only, and the result is for the nearest data point, not the exact field. Crop rotation scenarios are coming.",
         "summary_for": "Result for",
     },
 }
@@ -88,6 +104,13 @@ def light(delta, threshold):
     if delta < -threshold:
         return "worse"
     return "same"
+
+
+def haversine(lat1, lon1, lat2, lon2):
+    p1, p2 = math.radians(lat1), math.radians(lat2)
+    dp, dl = p2 - p1, math.radians(lon2 - lon1)
+    a = math.sin(dp / 2) ** 2 + math.cos(p1) * math.cos(p2) * math.sin(dl / 2) ** 2
+    return 2 * 6371 * math.asin(math.sqrt(a))
 
 
 @st.cache_data
@@ -120,24 +143,77 @@ if lang == "ar":
 st.title(T["title"])
 st.subheader(T["subtitle"])
 
-# ---------- Data ----------
+# ---------- Data and region ----------
 all_data = load_data()
-st.sidebar.header(T["field"])
+points = all_data.groupby("Region")[["Lat", "Lon"]].first()
+options = sorted(all_data["Region"].unique())
 
 
 def region_label(name):
     return REGION_AR.get(name, name) if lang == "ar" else name
 
 
+if st.session_state.get("region_name") not in options:
+    st.session_state.region_name = options[0]
+
+st.sidebar.header(T["field"])
 region = st.sidebar.selectbox(
-    T["region"], sorted(all_data["Region"].unique()), format_func=region_label
+    T["region"],
+    options,
+    index=options.index(st.session_state.region_name),
+    format_func=region_label,
 )
+st.session_state.region_name = region
+
 data = all_data[all_data["Region"] == region].set_index("Date")
 lat, lon = data["Lat"].iloc[0], data["Lon"].iloc[0]
 
 y_min, y_max = int(data.index.year.min()), int(data.index.year.max())
 years = st.sidebar.slider(T["years"], y_min, y_max, (y_min, y_max))
 df = data[(data.index.year >= years[0]) & (data.index.year <= years[1])]
+
+# ---------- Satellite map with click ----------
+st.markdown(f"### {T['map']}")
+st.caption(T["map_hint"])
+
+m = folium.Map(location=[32.0, -7.0], zoom_start=6, tiles=None)
+folium.TileLayer(tiles=SAT, attr="Esri, Maxar, Earthstar Geographics", name="Satellite").add_to(m)
+folium.TileLayer(tiles=LABELS, attr="Esri", name="Labels", overlay=True).add_to(m)
+
+for name, row in points.iterrows():
+    folium.Marker(
+        [row["Lat"], row["Lon"]],
+        tooltip=region_label(name),
+        icon=folium.Icon(color="green" if name == region else "blue"),
+    ).add_to(m)
+folium.Circle([lat, lon], radius=5000, color="yellow", weight=2).add_to(m)
+
+last = st.session_state.get("last_click")
+if last:
+    folium.Marker(
+        [last["lat"], last["lng"]], icon=folium.Icon(color="red", icon="home")
+    ).add_to(m)
+
+out = st_folium(m, height=450, use_container_width=True, key="map", returned_objects=["last_clicked"])
+
+new = out.get("last_clicked") if out else None
+if new and new != st.session_state.get("last_click"):
+    st.session_state.last_click = new
+    dists = {
+        n: haversine(new["lat"], new["lng"], r["Lat"], r["Lon"])
+        for n, r in points.iterrows()
+    }
+    nearest = min(dists, key=dists.get)
+    st.session_state.click_region = nearest
+    st.session_state.click_km = dists[nearest]
+    st.session_state.region_name = nearest
+    st.rerun()
+
+if st.session_state.get("click_region") == region and "click_km" in st.session_state:
+    km = st.session_state.click_km
+    st.info(f"📍 {T['nearest']}: {region_label(region)} ({T['distance']} {km:.0f} {T['km']})")
+    if km > 50:
+        st.warning(T["far_warn"])
 
 st.success(T["source"])
 
@@ -154,8 +230,8 @@ if len(df) >= 24:
 
     c1, c2 = st.columns(2)
     for col, label, status, msg in [
-        (c1, T["veg"], s_veg, T["veg_msgs"][light(d_veg, 0.02)]),
-        (c2, T["moist"], s_moist, T["moist_msgs"][light(d_moist, 2.0)]),
+        (c1, T["veg"], s_veg, T["veg_msgs"][s_veg]),
+        (c2, T["moist"], s_moist, T["moist_msgs"][s_moist]),
     ]:
         with col:
             st.markdown(f"#### {label}")
@@ -188,6 +264,4 @@ with st.expander(T["details"]):
     m2.metric(T["avg_moist"], f"{df['Soil Moisture % (SMAP)'].mean():.1f} %")
     st.info(f"📍 {T['location']}: {lat:.4f}, {lon:.4f}")
 
-st.markdown(f"### {T['map']}")
-st.map(pd.DataFrame({"lat": [lat], "lon": [lon]}), zoom=8)
 st.caption(T["caption"])
