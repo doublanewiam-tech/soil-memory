@@ -35,19 +35,17 @@ CROPS = {
     "zucchini": mk("cucurbit", -0.5, -2.0, 1, "🥒 القرع الأخضر (الكوسة)", "🥒 Zucchini"),
     "watermelon": mk("cucurbit", -1.0, -2.0, 1, "🍉 البطيخ الأحمر (الدلاح)", "🍉 Watermelon"),
     "melon": mk("cucurbit", -1.0, -2.0, 1, "🍈 البطيخ الأصفر (الشمام)", "🍈 Melon"),
-    # Legumes (pulses and forage legumes)
+    # Legumes
     "lentil": mk("legume", 0.5, 4.0, 0, "🫘 العدس", "🫘 Lentil"),
     "faba": mk("legume", 1.0, 5.0, 1, "🫘 الفول", "🫘 Faba bean"),
     "chickpea": mk("legume", 0.5, 4.0, 0, "🫘 الحمص", "🫘 Chickpea"),
     "peas": mk("legume", 0.5, 4.0, 1, "🫛 البازلاء", "🫛 Peas"),
     "alfalfa": mk("legume", 3.0, 6.0, 2, "🌿 البرسيم الحجازي (الفصة)", "🌿 Alfalfa"),
-    "clover": mk("legume", 2.0, 5.0, 1, "🌿 البرسيم المصري", "🌿 Berseem clover"),
     # Industrial and forage crops
     "sugarbeet": mk("beet", -1.0, -2.0, 2, "🌱 الشمندر السكري", "🌱 Sugar beet"),
     "sugarcane": mk("grass", 0.5, -3.0, 2, "🌱 قصب السكر", "🌱 Sugarcane"),
     "forage_maize": mk("grass", -0.5, -4.0, 2, "🌽 الذرة العلفية", "🌽 Forage maize"),
     "sunflower": mk("sunflower", 0.0, -2.0, 1, "🌻 دوار الشمس", "🌻 Sunflower"),
-    "rapeseed": mk("brassica", 0.0, -2.5, 1, "🌱 اللفت الزيتي (الكولزا)", "🌱 Rapeseed"),
     # Tree crops (permanent, not rotated)
     "olive": mk("olive", 0.8, 0.0, 0, "🫒 الزيتون (شجرة دائمة)", "🫒 Olive (permanent tree)", True),
     "lemon": mk("citrus", 0.8, -1.0, 2, "🍋 الليمون (شجرة دائمة)", "🍋 Lemon (permanent tree)", True),
@@ -71,7 +69,6 @@ GROUPS = {
     "cucurbit": ("عائلة القرع والبطيخ", "Squash and melon family"),
     "beet": ("عائلة الشمندر", "Beet family"),
     "sunflower": ("عائلة دوار الشمس", "Sunflower family"),
-    "brassica": ("عائلة اللفت (الصليبيات)", "Rapeseed and cabbage family"),
     "olive": ("شجرة الزيتون", "Olive tree"),
     "citrus": ("أشجار الحمضيات", "Citrus trees"),
     "rosaceae": ("أشجار التفاح والخوخ واللوز", "Apple, peach and almond trees"),
@@ -81,6 +78,70 @@ GROUPS = {
     "fallow": ("أرض بور", "Fallow"),
 }
 WATER_LEVEL = {0: ("منخفض", "Low"), 1: ("متوسط", "Medium"), 2: ("مرتفع", "High")}
+
+# ---------- Regional suitability (provided by the team; lemon and orange copy mandarin) ----------
+COND = {
+    "ok": ("يمكن", "Possible"),
+    "irr": ("مشروط بالري", "Needs irrigation"),
+    "irr_ok": ("يمكن مع الري", "Possible with irrigation"),
+    "water": ("مشروط بالماء", "Depends on water availability"),
+    "water_strict": ("مشروط بشدة بالماء", "Strongly depends on water availability"),
+    "water_ok": ("يمكن، مع مراعاة قيود الماء", "Possible, mind the water limits"),
+    "rain": ("مشروط بالأمطار", "Depends on rainfall"),
+    "season": ("مشروط بالموسم", "Depends on the season"),
+    "site": ("مشروط بالموقع", "Depends on location"),
+    "site_cold": ("مشروط بالموقع والبرودة", "Depends on location and cold"),
+    "good_zones": ("يمكن في المناطق المناسبة", "Possible in suitable areas"),
+    "alt_cold": ("مشروط بالارتفاع والبرودة", "Depends on altitude and cold"),
+    "cold": ("مشروط بالبرودة", "Depends on cold"),
+    "site_heat": ("مشروط بالموقع والحرارة", "Depends on location and heat"),
+    "cond": ("مشروط", "Conditional"),
+    "variety_site": ("مشروط بالصنف والموقع", "Depends on variety and location"),
+    "irr_heat": ("مشروط بالري والحرارة", "Needs irrigation and heat"),
+    "no": ("غير ملائم غالبًا", "Mostly unsuitable"),
+}
+ALL_OK = ("ok",) * 5
+CITRUS = ("irr", "irr", "ok", "irr", "ok")
+PULSE = ("ok", "ok", "rain", "ok", "ok")
+# order: Doukkala, Tadla, Souss, El Haouz, El Gharb
+SUIT = {
+    "wheat": ALL_OK, "durum": ALL_OK, "barley": ALL_OK,
+    "rice": ("irr", "irr", "no", "no", "irr_ok"),
+    "maize": ("irr", "irr_ok", "irr", "irr", "ok"),
+    "tomato": ALL_OK, "pepper": ALL_OK, "potato": ALL_OK, "onion": ALL_OK,
+    "carrot": ALL_OK, "pumpkin": ALL_OK, "zucchini": ALL_OK,
+    "watermelon": ("water", "water", "water", "water", "water_ok"),
+    "melon": ALL_OK,
+    "lentil": PULSE, "faba": PULSE, "chickpea": PULSE,
+    "peas": ("ok", "ok", "season", "ok", "ok"),
+    "alfalfa": ("irr", "irr_ok", "water_strict", "water_strict", "irr_ok"),
+    "sugarbeet": ("irr_ok", "irr_ok", "water", "irr_ok", "irr_ok"),
+    "sugarcane": ("no", "no", "no", "no", "irr_heat"),
+    "forage_maize": ("irr", "irr_ok", "water", "water", "irr_ok"),
+    "sunflower": ALL_OK, "olive": ALL_OK,
+    "mandarin": CITRUS, "lemon": CITRUS, "orange": CITRUS,
+    "apple": ("site_cold", "good_zones", "alt_cold", "alt_cold", "cold"),
+    "peach": ("ok", "ok", "variety_site", "ok", "ok"),
+    "almond": ALL_OK, "pomegranate": ALL_OK,
+    "date": ("site_heat", "cond", "site", "site", "no"),
+    "grape": ALL_OK,
+}
+REG_IDX = {
+    "Doukkala (Morocco)": 0,
+    "Tadla (Morocco)": 1,
+    "Souss (Morocco)": 2,
+    "El Haouz (Morocco)": 3,
+    "El Gharb (Morocco)": 4,
+}
+
+
+def level_icon(code):
+    if code == "ok":
+        return "🟢"
+    if code == "no":
+        return "🔴"
+    return "🟡"
+
 
 TEXT = {
     "ar": {
@@ -126,6 +187,8 @@ TEXT = {
         "plan_a": "الخطة أ",
         "plan_b": "الخطة ب",
         "year_n": "السنة {}",
+        "show_all": "إظهار المحاصيل غير الملائمة لهذه المنطقة",
+        "suit_note": "الإمكانية الزراعية تقدير عام حسب المنطقة. كلمة «يمكن» لا تعني أن المحصول يناسب الري المكثف، فبعض المحاصيل (كالبطيخ والفصة وبعض الأشجار) تستهلك ماءً كثيرًا. راجع مرشدًا فلاحيًا قبل القرار.",
         "om_chart": "مؤشر المادة العضوية في التربة (١٠٠ = اليوم)",
         "n_chart": "مؤشر النيتروجين في التربة (١٠٠ = اليوم)",
         "irr": "ضغط الري (٠ منخفض، ٢ مرتفع)",
@@ -191,6 +254,8 @@ TEXT = {
         "plan_a": "Plan A",
         "plan_b": "Plan B",
         "year_n": "Year {}",
+        "show_all": "Show crops that are unsuitable for this region",
+        "suit_note": "Regional suitability is a general estimate. \"Possible\" does not mean a crop suits intensive irrigation: some crops (watermelon, alfalfa, some trees) use a lot of water. Consult a farm advisor before deciding.",
         "om_chart": "Soil organic matter index (100 = today)",
         "n_chart": "Soil nitrogen index (100 = today)",
         "irr": "Irrigation pressure (0 low, 2 high)",
@@ -429,10 +494,18 @@ with tab_sim:
     st.markdown(f"### {T['sim_title']}")
     st.write(T["sim_intro"])
 
-    crop_keys = list(CROPS.keys())
+    reg_idx = REG_IDX.get(region)
+
+    def suit(k):
+        if k == "fallow" or reg_idx is None or k not in SUIT:
+            return "ok"
+        return SUIT[k][reg_idx]
+
+    show_all = st.checkbox(T["show_all"], key="show_all")
+    crop_keys = [k for k in CROPS if show_all or suit(k) != "no"]
 
     def crop_label(k):
-        return CROPS[k][lang]
+        return f"{level_icon(suit(k))} {CROPS[k][lang]}"
 
     defaults = {
         "a": ["wheat", "wheat", "wheat"],
@@ -451,10 +524,22 @@ with tab_sim:
                         crop_keys,
                         index=crop_keys.index(defaults[pid][i]),
                         format_func=crop_label,
-                        key=f"{pid}{i}",
+                        key=f"{pid}{i}_{region}_{int(show_all)}",
                     )
                 )
             plans[pid] = picks
+
+    # Suitability warnings for the chosen crops
+    for pid, title in [("a", T["plan_a"]), ("b", T["plan_b"])]:
+        for c in dict.fromkeys(plans[pid]):
+            code = suit(c)
+            if code != "ok":
+                msg = f"{level_icon(code)} {title} - {CROPS[c][lang]}: {COND[code][li]}"
+                if code == "no":
+                    st.error(msg)
+                else:
+                    st.warning(msg)
+    st.caption(T["suit_note"])
 
     # Tree crops are permanent: they replace the whole rotation
     for pid, title in [("a", T["plan_a"]), ("b", T["plan_b"])]:
@@ -518,7 +603,7 @@ with tab_sim:
                     T["col_n"]: CROPS[k]["n"],
                     T["col_water"]: WATER_LEVEL[CROPS[k]["water"]][li],
                 }
-                for k in crop_keys
+                for k in CROPS
             ]
         )
         st.dataframe(table, hide_index=True, use_container_width=True)
