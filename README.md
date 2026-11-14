@@ -1,5 +1,5 @@
 # 🌱 Soil Memory
-
+Live app : https://soil-memory-uhg3wqs4a6mvsxzvk4lxhx.streamlit.app/
 **Satellite-driven soil health and crop-rotation planner for Moroccan farmers, in Arabic and English.**
 NASA Space Apps Challenge 2026 · Team SoilSat
 
