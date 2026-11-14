@@ -1,11 +1,9 @@
 # 🌱 Soil Memory
 
 **Satellite-driven soil health and crop-rotation planner for Moroccan farmers, in Arabic and English.**
-NASA Space Apps Challenge 2026.
+NASA Space Apps Challenge 2026 · Team SoilSat
 
-[▶ Live demo](#) · [Demo video](#) · [How it works](#how-it-works) · [Limitations](#limitations)
-
-<!-- ![dashboard screenshot](docs/dashboard.png) -->
+[How it works](#how-it-works) · [Limitations](#limitations) · [Run locally](#run-locally)
 
 ---
 
@@ -132,5 +130,8 @@ The app reads `regions.csv` from the repository root. Required columns: `Region`
 - NASA MODIS vegetation indices (NDVI)
 - NASA SMAP L4 soil moisture (NSIDC DAAC)
 - Basemap: Esri World Imagery
-- Code: MIT (add a `LICENSE` file)
+- Code: MIT License, see [LICENSE](LICENSE). Copyright (c) 2026 SoilSat.
 
+## Team
+
+**SoilSat**: Nidal and Wiam
