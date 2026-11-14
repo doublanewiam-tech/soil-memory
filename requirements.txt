@@ -5,3 +5,5 @@ numpy>=1.24
 # only for scripts/fetch_real_data.py:
 # earthengine-api
 gTTs
+folium
+streamlit-folium
