@@ -32,9 +32,9 @@ CROPS = {
     "onion": mk("allium", -1.5, -2.0, 1, "🧅 البصل", "🧅 Onion"),
     "carrot": mk("carrot", -1.5, -2.0, 1, "🥕 الجزر", "🥕 Carrot"),
     "pumpkin": mk("cucurbit", -0.5, -2.0, 1, "🎃 القرع الأحمر", "🎃 Red pumpkin"),
-    "zucchini": mk("cucurbit", -0.5, -2.0, 1, "🥒 القرع الأخضر (الكوسة)", "🥒 Zucchini"),
-    "watermelon": mk("cucurbit", -1.0, -2.0, 1, "🍉 البطيخ الأحمر (الدلاح)", "🍉 Watermelon"),
-    "melon": mk("cucurbit", -1.0, -2.0, 1, "🍈 البطيخ الأصفر (الشمام)", "🍈 Melon"),
+    "zucchini": mk("cucurbit", -0.5, -2.0, 1, "🥒 القرع الأخضر ", "🥒 Zucchini"),
+    "watermelon": mk("cucurbit", -1.0, -2.0, 1, "🍉 البطيخ الأحمر ", "🍉 Watermelon"),
+    "melon": mk("cucurbit", -1.0, -2.0, 1, "🍈 البطيخ الأصفر)", "🍈 Melon"),
     # Legumes
     "lentil": mk("legume", 0.5, 4.0, 0, "🫘 العدس", "🫘 Lentil"),
     "faba": mk("legume", 1.0, 5.0, 1, "🫘 الفول", "🫘 Faba bean"),
@@ -57,8 +57,7 @@ CROPS = {
     "pomegranate": mk("pomegranate", 0.6, -0.5, 1, "🔴 الرمان (شجرة دائمة)", "🔴 Pomegranate (permanent tree)", True),
     "date": mk("date", 0.5, 0.0, 1, "🌴 النخيل (التمر)", "🌴 Date palm", True),
     "grape": mk("grape", 0.5, -0.5, 1, "🍇 العنب (كرمة دائمة)", "🍇 Grapevine (permanent)", True),
-    # Fallow
-    "fallow": mk("fallow", -0.5, 0.5, 0, "⬜ أرض بور", "⬜ Fallow"),
+
 }
 GROUPS = {
     "grass": ("عائلة القمح والذرة (النجيليات)", "Wheat and maize family (grasses)"),
@@ -75,7 +74,6 @@ GROUPS = {
     "pomegranate": ("شجرة الرمان", "Pomegranate tree"),
     "date": ("نخيل التمر", "Date palm"),
     "grape": ("الكرمة (العنب)", "Grapevine"),
-    "fallow": ("أرض بور", "Fallow"),
 }
 WATER_LEVEL = {0: ("منخفض", "Low"), 1: ("متوسط", "Medium"), 2: ("مرتفع", "High")}
 
